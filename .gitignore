@@ -16,6 +16,9 @@ examples/**/dev/*.sh
 # Flower Baselines
 baselines/datasets/leaf
 
+# Dataset
+dataset
+
 # macOS
 .DS_Store
 
