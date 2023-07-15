@@ -114,7 +114,7 @@ def _partition_data(
 
 def load_datasets(
         dataset: str,
-        batch_size: Optional[int] = 32,
+        batch_size: Optional[int] = 40,
         seed: Optional[int] = 42,
     ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     num_clients = 50
