@@ -13,6 +13,7 @@ class Net(nn.Module):
 
     def __init__(self, input_size: int, num_classes: int) -> None:
         super().__init__()
+        self.flat = nn.Flatten()
         self.h1 = nn.Linear(input_size, 80)
         self.h2 = nn.Linear(80, 60)
         self.out = nn.Linear(60, num_classes)
@@ -31,7 +32,8 @@ class Net(nn.Module):
         torch.Tensor
             The resulting Tensor after it has passed through the network
         """
-        z1 = F.elu(self.h1(input_tensor), alpha=0.2)
+        inp = self.flat(input_tensor)
+        z1 = F.elu(self.h1(inp), alpha=0.2)
         z2 = F.elu(self.h2(z1), alpha=0.2)
         logits = F.elu(self.out(z2), alpha=0.2)
         return logits
