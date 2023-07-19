@@ -123,4 +123,4 @@ def load_datasets(
     a = 196 if dataset == 'mnist' else 68
     trainset_split = _partition_data(trainset, num_clients, 10, a, seed)
     trainloaders = [DataLoader(dset, batch_size=batch_size, shuffle=True) for dset in trainset_split]
-    return trainloaders, DataLoader(testset, batch_size=batch_size, shuffle=True)
+    return trainloaders, DataLoader(testset, batch_size=1)

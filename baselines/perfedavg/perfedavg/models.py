@@ -115,3 +115,32 @@ def train(  # pylint: disable=too-many-arguments
         else:
             # TODO: Implement training with Hessian Free Approximation
             raise NotImplementedError("Hessian Free Approximation not implemented")
+        
+    
+def evaluate(  # pylint: disable=too-many-arguments
+    net: nn.Module,
+    testloader: DataLoader,
+    device: torch.device,
+    step_size: float = 0.01,
+) -> None:
+
+    # Step 1: Perform one step of SGD
+    net_maml = deepcopy(net)
+    optimizer_maml = torch.optim.SGD(net_maml.parameters(), lr=step_size)
+    criterion = torch.nn.CrossEntropyLoss()
+    D1_X, D1_y = next(iter(testloader))
+    optimizer_maml.zero_grad()
+    D1_y_hat = F.softmax(net_maml(D1_X))
+    loss = criterion(D1_y_hat, D1_y)
+    loss.backward()
+    optimizer_maml.step()
+
+    # Step 2: Evaluate model
+    net_maml.eval()
+    correct, total = 0, 0
+    with torch.no_grad():
+        for input, target in testloader:
+            output = net_maml(input)
+            correct += (output.argmax(1) == target).sum().item()
+            total += target.size(0)
+    return correct / total
