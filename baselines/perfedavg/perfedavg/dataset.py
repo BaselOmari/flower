@@ -105,6 +105,7 @@ def _partition_data(
         x,y = zip(*data)
         tensor_x = torch.stack(x)
         tensor_y = torch.Tensor(y)
+        tensor_y = tensor_y.type(torch.LongTensor)
 
         dataset = TensorDataset(tensor_x, tensor_y)
         client_data[c] = dataset
