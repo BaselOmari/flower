@@ -43,10 +43,10 @@ def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
     trainloader: DataLoader,
     device: torch.device,
-    learning_rate: float,
-    steps: int,
-    step_size: float,
-    first_order: bool
+    learning_rate: float = 0.001,
+    steps: int = 10,
+    step_size: float = 0.01,
+    first_order: bool = True
 ) -> None:
     """Train the network on the training set.
 
@@ -72,7 +72,7 @@ def train(  # pylint: disable=too-many-arguments
         If True use the first order approximation - Per-FedAvg (FO)
         Else use the hessian free approximation - Per-FedAvg (HF)
     """
-
+    trainloader = iter(trainloader)
     criterion = torch.nn.CrossEntropyLoss()
 
     # Create copy of net which represents the model one step in 
@@ -88,7 +88,7 @@ def train(  # pylint: disable=too-many-arguments
         net_maml.load_state_dict(net.state_dict())
 
         # Step 1: Update clone model by one step
-        D1_X, D1_y = trainloader.sample_batch()
+        D1_X, D1_y = next(trainloader)
         optimizer_maml.zero_grad()
         D1_y_hat = F.softmax(net_maml(D1_X))
         loss = criterion(D1_y_hat, D1_y)
@@ -96,7 +96,7 @@ def train(  # pylint: disable=too-many-arguments
         optimizer_maml.step()
 
         # Step 2:
-        D2_X, D2_y = trainloader.sample_batch()
+        D2_X, D2_y = next(trainloader)
         if first_order:
             # Calculate first order approximation of the gradients
             optimizer_maml.zero_grad()
