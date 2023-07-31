@@ -45,7 +45,7 @@ def train(  # pylint: disable=too-many-arguments
     learning_rate: float = 0.01,
     steps: int = 10,
     step_size: float = 0.01,
-    first_order: bool = True,
+    mode: bool = "fo",
 ) -> None:
     """Train the network on the training set.
 
@@ -95,7 +95,7 @@ def train(  # pylint: disable=too-many-arguments
 
         # Step 2:
         D2_X, D2_y = next(iter(trainloader))
-        if first_order:
+        if mode == "mo":
             # Calculate first order approximation of the gradients
             optimizer_maml.zero_grad()
             D2_y_hat = F.softmax(net_maml(D2_X))
@@ -111,9 +111,15 @@ def train(  # pylint: disable=too-many-arguments
             # Update weights according to new gradients
             optimizer.step()
 
-        else:
+        elif mode == "hf":
             # TODO: Implement training with Hessian Free Approximation
             raise NotImplementedError("Hessian Free Approximation not implemented")
+        else:
+            optimizer.zero_grad()
+            D1_y_hat = F.softmax(net(D1_X))
+            loss = criterion(D1_y_hat, D1_y)
+            loss.backward()
+            optimizer.step()
 
 
 def evaluate(  # pylint: disable=too-many-arguments
