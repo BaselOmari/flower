@@ -45,6 +45,7 @@ def train(  # pylint: disable=too-many-arguments
     learning_rate: float = 0.01,
     steps: int = 10,
     step_size: float = 0.01,
+    delta: float = 1e-6,
     mode: bool = "fo",
 ) -> None:
     """Train the network on the training set.
@@ -112,8 +113,60 @@ def train(  # pylint: disable=too-many-arguments
             optimizer.step()
 
         elif mode == "hf":
-            # TODO: Implement training with Hessian Free Approximation
-            raise NotImplementedError("Hessian Free Approximation not implemented")
+            model_1 = deepcopy(net)
+            optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=step_size)
+            model_plus = deepcopy(net)
+            optimizer_plus = torch.optim.SGD(model_plus.parameters(), lr=delta)
+            model_minus = deepcopy(net)
+            optimizer_minus = torch.optim.SGD(model_minus.parameters(), lr=delta)
+
+            D1_X, D1_y = next(iter(trainloader))
+            optimizer_1.zero_grad()
+            D1_y_hat = F.softmax(model_1(D1_X))
+            loss = criterion(D1_y_hat, D1_y)
+            loss.backward()
+            optimizer_1.step()
+
+            D2_X, D2_y = next(iter(trainloader))
+            optimizer_1.zero_grad()
+            D2_y_hat = F.softmax(model_1(D2_X))
+            loss = criterion(D2_y_hat, D2_y)
+            loss.backward()
+
+            for model_1_p, model_plus_p in zip(
+                model_1.named_parameters(), model_plus.named_parameters()
+            ):
+                model_plus_p[1].grad = -1 * model_1_p[1].grad
+
+            for model_1_p, model_minus_p in zip(
+                model_1.named_parameters(), model_minus.named_parameters()
+            ):
+                model_minus_p[1].grad = model_1_p[1].grad
+
+            optimizer_plus.step()
+            optimizer_minus.step()
+
+            D3_X, D3_y = next(iter(trainloader))
+            optimizer_plus.zero_grad()
+            D3_y_hat = F.softmax(model_plus(D3_X))
+            loss = criterion(D3_y_hat, D3_y)
+            loss.backward()
+
+            optimizer_minus.zero_grad()
+            D3_y_hat = F.softmax(model_minus(D3_X))
+            loss = criterion(D3_y_hat, D3_y)
+            loss.backward()
+
+            for net_p, model_1_p, model_plus_p, model_minus_p in zip(
+                net.named_parameters(),
+                model_1.named_parameters(),
+                model_plus.named_parameters(),
+                model_minus.named_parameters(),
+            ):
+                di = (model_plus_p[1].grad - model_minus_p[1].grad) / (2 * delta)
+                net_p[1].grad = model_1_p[1].grad - step_size * di
+
+            optimizer.step()
         else:
             optimizer.zero_grad()
             D1_y_hat = F.softmax(net(D1_X))
