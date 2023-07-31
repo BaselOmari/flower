@@ -95,7 +95,7 @@ def train(  # pylint: disable=too-many-arguments
 
         # Step 2:
         D2_X, D2_y = next(iter(trainloader))
-        if mode == "mo":
+        if mode == "fo":
             # Calculate first order approximation of the gradients
             optimizer_maml.zero_grad()
             D2_y_hat = F.softmax(net_maml(D2_X))
