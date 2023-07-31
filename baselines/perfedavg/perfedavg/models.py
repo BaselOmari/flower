@@ -17,7 +17,6 @@ class Net(nn.Module):
         self.h1 = nn.Linear(input_size, 80)
         self.h2 = nn.Linear(80, 60)
         self.out = nn.Linear(60, num_classes)
-        
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         """Forward pass of the CNN.
@@ -43,10 +42,10 @@ def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
     trainloader: DataLoader,
     device: torch.device,
-    learning_rate: float = 0.001,
+    learning_rate: float = 0.01,
     steps: int = 10,
     step_size: float = 0.01,
-    first_order: bool = True
+    first_order: bool = True,
 ) -> None:
     """Train the network on the training set.
 
@@ -72,10 +71,9 @@ def train(  # pylint: disable=too-many-arguments
         If True use the first order approximation - Per-FedAvg (FO)
         Else use the hessian free approximation - Per-FedAvg (HF)
     """
-    trainloader = iter(trainloader)
     criterion = torch.nn.CrossEntropyLoss()
 
-    # Create copy of net which represents the model one step in 
+    # Create copy of net which represents the model one step in
     # advance (denoted by omega with superscript tilde)
     net_maml = deepcopy(net)
     optimizer_maml = torch.optim.SGD(net_maml.parameters(), lr=step_size)
@@ -88,7 +86,7 @@ def train(  # pylint: disable=too-many-arguments
         net_maml.load_state_dict(net.state_dict())
 
         # Step 1: Update clone model by one step
-        D1_X, D1_y = next(trainloader)
+        D1_X, D1_y = next(iter(trainloader))
         optimizer_maml.zero_grad()
         D1_y_hat = F.softmax(net_maml(D1_X))
         loss = criterion(D1_y_hat, D1_y)
@@ -96,7 +94,7 @@ def train(  # pylint: disable=too-many-arguments
         optimizer_maml.step()
 
         # Step 2:
-        D2_X, D2_y = next(trainloader)
+        D2_X, D2_y = next(iter(trainloader))
         if first_order:
             # Calculate first order approximation of the gradients
             optimizer_maml.zero_grad()
@@ -104,26 +102,26 @@ def train(  # pylint: disable=too-many-arguments
             loss = criterion(D2_y_hat, D2_y)
             loss.backward()
 
-            
             # Copy gradients
-            for net_p, net_maml_p in zip(net.named_parameters(), net_maml.named_parameters()):
+            for net_p, net_maml_p in zip(
+                net.named_parameters(), net_maml.named_parameters()
+            ):
                 net_p[1].grad = net_maml_p[1].grad
-            
+
             # Update weights according to new gradients
             optimizer.step()
-        
+
         else:
             # TODO: Implement training with Hessian Free Approximation
             raise NotImplementedError("Hessian Free Approximation not implemented")
-        
-    
+
+
 def evaluate(  # pylint: disable=too-many-arguments
     net: nn.Module,
     testloader: DataLoader,
     device: torch.device,
     step_size: float = 0.01,
 ) -> None:
-
     # Step 1: Perform one step of SGD
     net_maml = deepcopy(net)
     optimizer_maml = torch.optim.SGD(net_maml.parameters(), lr=step_size)
